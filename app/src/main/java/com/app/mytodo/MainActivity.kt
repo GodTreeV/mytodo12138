@@ -1,6 +1,8 @@
 package com.app.mytodo
 
 import android.Manifest
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.ViewGroup
@@ -24,6 +26,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
+        window.setBackgroundDrawable(ColorDrawable(Color.WHITE))
+
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             if (it.not()) {
                 Toast.makeText(this, "Need permission to start reminder", Toast.LENGTH_SHORT).show()
@@ -37,11 +41,13 @@ class MainActivity : AppCompatActivity() {
         with(binding) {
             navigation.setOnItemSelectedListener {
                 TransitionManager.beginDelayedTransition(window.decorView as ViewGroup, Fade())
-                donelistview.isVisible = (it.itemId == R.id.notdone).not()
-                listview.isVisible = it.itemId == R.id.notdone
-                if (it.itemId == R.id.notdone) {
+                if (it.itemId != R.id.notdone) {
+                    donelistview.isVisible = true
+                    listview.isVisible = false
                     addview.hide()
                 } else {
+                    donelistview.isVisible = false
+                    listview.isVisible = true
                     addview.show()
                 }
                 true
@@ -51,7 +57,7 @@ class MainActivity : AppCompatActivity() {
             donelistview.adapter = DoneTodoAdapter(this@MainActivity)
 
             addview.setOnClickListener {
-                EditFragment().show(supportFragmentManager, EditFragment::class.java.name)
+                showEditFragment()
             }
         }
     }

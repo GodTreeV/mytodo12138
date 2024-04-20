@@ -1,6 +1,5 @@
 package com.app.mytodo
 
-import android.icu.text.SimpleDateFormat
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -11,16 +10,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.Operation
-import androidx.work.WorkManager
 import com.app.mytodo.databinding.LayoutItemBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.Date
-import java.util.Locale
 
 open class TodoAdapter(private val activity: AppCompatActivity) : RecyclerView.Adapter<TodoAdapter.TodoViewHolder>() {
 
@@ -43,8 +38,12 @@ open class TodoAdapter(private val activity: AppCompatActivity) : RecyclerView.A
     private val lock = Any()
 
     init {
+        listenFlows()
+    }
+
+    protected fun listenFlows() {
         setHasStableIds(true)
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             val dao = activity.getDao()
             dao.queryAllAsFlow().flowWithLifecycle(activity.lifecycle, Lifecycle.State.CREATED).onEach {
                 readyToSubmitNewList(it)
@@ -53,6 +52,8 @@ open class TodoAdapter(private val activity: AppCompatActivity) : RecyclerView.A
     }
 
     open fun readyToSubmitNewList(new: List<Todo>) {
+        val filtered = new.filter { it.done.not() }
+        log { "filtered =  $filtered" }
         asyncListDiffer.submitList(new.filter { it.done.not() })
     }
 
@@ -98,6 +99,12 @@ open class TodoAdapter(private val activity: AppCompatActivity) : RecyclerView.A
                             updateTodoReminderWorker(activity, todo)
                         }
                     }
+                }
+            }
+
+            if (todo.done.not()) {
+                root.setOnClickListener {
+                    activity.showEditFragment(todo)
                 }
             }
         }

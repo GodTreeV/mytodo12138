@@ -6,23 +6,26 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
+import androidx.fragment.app.FragmentActivity
 import com.app.mytodo.databinding.LayoutEditBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
-class EditFragment : BottomSheetDialogFragment() {
+fun FragmentActivity.showEditFragment(editableTodo: Todo? = null) {
+    EditFragment(editableTodo).show(supportFragmentManager, EditFragment::class.java.simpleName)
+}
+
+class EditFragment(
+    private var editableTodo: Todo? = null
+) : BottomSheetDialogFragment() {
 
     private lateinit var binding: LayoutEditBinding
 
     private var pickedTime = -1L
 
-    private val newTodo = Todo(title = "", content = "")
+    private var needUpdate = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,7 +40,16 @@ class EditFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         with(binding) {
-            date.setOnClickListener {
+
+            editableTodo?.let {
+                title.setText(it.title)
+                content.setText(it.content)
+                needUpdate = true
+            } ?: run {
+                editableTodo = Todo(title = "", content = "")
+            }
+
+            picktime.setOnClickListener {
                 DateAndTimePickers.showDatePickerDialog(requireActivity()) {
                     val yearMonth = DateAndTimePickers.getFormatTimestamp(it, "yyyy/MM/dd")
                     DateAndTimePickers.showTimePickerDialog(requireActivity()) { h, m ->
@@ -53,32 +65,34 @@ class EditFragment : BottomSheetDialogFragment() {
                             ).show()
                             return@showTimePickerDialog
                         }
-                        date.text = timeStr + "(It's ${tick/3600000}h${(tick % 3600000) / 60000}m from now)"
+                        //date.text = timeStr + "(It's ${tick/3600000}h${(tick % 3600000) / 60000}m from now)"
 
                         pickedTime = timeLong
                     }
                 }
             }
             commit.setOnClickListener {
-                if (title.text?.toString()?.isEmpty() == true || content.text?.toString()?.isEmpty() == true || pickedTime == -1L) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Must input all information",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                if (title.text?.toString()?.isEmpty() == true || content.text?.toString()?.isEmpty() == true) {
+                    requireContext().toast { "Must input all information" }
                     return@setOnClickListener
                 }
 
-                newTodo.date = pickedTime
-                newTodo.done = false
-                newTodo.title = title.text!!.toString()
-                newTodo.content = title.text!!.toString()
+                editableTodo!!.date = pickedTime
+                editableTodo!!.done = false
+                editableTodo!!.title = title.text!!.toString()
+                editableTodo!!.content = content.text!!.toString()
 
                 CoroutineScope(Dispatchers.IO).launch {
-                    requireContext().getDao().insert(newTodo)
+                    if (needUpdate) {
+                        requireContext().getDao().update(editableTodo!!)
+                    } else {
+                        requireContext().getDao().insert(editableTodo!!)
+                    }
                     CoroutineScope(Dispatchers.Main).launch {
-                        performPostReminderWork(newTodo)
+                        performPostReminderWork(editableTodo!!)
                         pickedTime = -1L
+                        requireContext().toast { "Todo saves succeed" }
+                        dismiss()
                     }
                 }
             }

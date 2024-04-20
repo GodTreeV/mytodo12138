@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
+import android.widget.Toast
 import androidx.core.content.PermissionChecker
 import androidx.room.Dao
 import androidx.room.Database
@@ -123,4 +125,12 @@ fun Context.hasNotificationPermission(): Boolean {
             Manifest.permission.POST_NOTIFICATIONS
         ) == PermissionChecker.PERMISSION_GRANTED
     } else true
+}
+
+fun Context.toast(msg: () -> String) {
+    Toast.makeText(this, msg(), Toast.LENGTH_SHORT).show()
+}
+
+fun log(msg: () -> String) {
+    Log.e("kkk", msg())
 }

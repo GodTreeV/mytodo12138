@@ -7,8 +7,15 @@ import androidx.appcompat.app.AppCompatActivity
 class DoneTodoAdapter(
     activity: AppCompatActivity
 ) : TodoAdapter(activity) {
+
+    init {
+        listenFlows()
+    }
+
     override fun readyToSubmitNewList(new: List<Todo>) {
-        asyncListDiffer.submitList(new.filter { it.done })
+        val filtered = new.filter { it.done }
+        log { "(DoneTodoAdapter)filtered =  $filtered" }
+        asyncListDiffer.submitList(filtered)
     }
 
     override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
